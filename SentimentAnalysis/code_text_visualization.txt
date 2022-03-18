@@ -1,0 +1,177 @@
+1. wordcloud
+
+# install the wordcloud package first 
+
+from wordcloud import WordCloud
+import nltk
+import matplotlib.pyplot as plt
+text='''WordCloud: one of the simplest visualization technique
+which is a type of word frequency visualization.
+The size of the word in the image is bigger for more
+frequent word and smaller for less frequen t word. This
+type of visualization can be of help in initial query
+formation. There are some drawbacks like the longer word
+may occupy more space giving the impression of the frequent
+word than it actually is. It may not help us to compare two
+frequent words about their relationship can be misleading
+sometimes even if using two words together may make sense.
+Frequent words may not be meaningful. For generating word
+cloud I am going to use wordcloud package you can install
+the package from pip. Below is the code to generate cloud.
+'''
+
+# some other properties
+wordcloud = WordCloud(background_color="white",max_font_size=60
+                      max_words=20).generate(text)
+plt.imshow(wordcloud,interpolation="bilinear")
+plt.axis('off')
+plt.show()
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+3. word dispersion plot
+
+# from the previous example, we saw that the word "government", 'power', 'freedom', are the main topic.
+# we now figure out the dispersion of these words in the corpus
+
+from nltk.draw.dispersion import dispersion_plot
+from nltk.corpus import inaugural
+import nltk
+text=inaugural.raw()
+text=nltk.word_tokenize(text)
+topics=['government','people','freedom','law','nation','world']
+dispersion_plot(text,topics) # the dispersion_plot only words for tokenized text
+# we can see that the topic "world" is covered at the end of the speech
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+4. lexical diversity plot
+
+# lexical diversity is defined as number of unique words/number of total words
+# low diversity corpus tend to convert richer information.
+
+from nltk.corpus import brown
+def lexical_diversity(text):
+    return round(len(set(text))/len(text),2)
+
+def get_brown_corpus_words(category):
+    words = [word.lower() for word in brown.words(categories=category)
+                 if word.isalpha()]
+    return words
+    
+for genre in brown.categories():
+    lex_div = lexical_diversity(get_brown_corpus_words(genre))
+    print(genre ,lex_div)
+
+# we can study if the lexical diversity increases or decreases when the corpus proceeds. 
+# we can infer if the information content is richer or less richer using this method
+# we divided the text corpus into chunks with 1000 words.
+
+from nltk.corpus import brown
+import numpy as np
+import matplotlib.pyplot as plt
+
+def lexical_diversity(text):
+    return round(len(set(text))/len(text),2)
+
+def get_brown_corpus_words(category):
+    words = [word.lower() for word in brown.words(categories=category)
+                 if word.isalpha()]
+    return words
+
+text=get_brown_corpus_words('adventure')
+word_count=len(text)
+word_offset=np.arange(1000,int(word_count/1000)*1000,1000)  # np.arange(1000,5000,1000)=[1000,2000,3000,4000]
+diversity=[]
+for i in word_offset:
+    chunk=text[i-1000:i-1]
+    div=lexical_diversity(chunk)
+    diversity.append(div)
+plt.figure(figsize=(16,8))
+plt.plot(word_offset,diversity)
+plt.xlabel('words')
+plt.ylabel('diversity')
+plt.show()
+# looks like the corpus is richer up front
+
+# now, let's plot lexical diversity changes for all brown categories
+# and change the chunk size to be 5000
+from nltk.corpus import brown
+import numpy as np
+import matplotlib.pyplot as plt
+
+def lexical_diversity(text):
+    return round(len(set(text))/len(text),2)
+
+def get_brown_corpus_words(category):
+    words = [word.lower() for word in brown.words(categories=category)
+                 if word.isalpha()]
+    return words
+
+plt.figure(figsize=(16,8))
+for cat in brown.categories():
+    text=get_brown_corpus_words(cat)
+    word_count=len(text)
+    word_offset=np.arange(5000,int(word_count/5000)*5000,5000)
+    diversity=[]
+    for i in word_offset:
+        chunk=text[i-5000:i-1]
+        div=lexical_diversity(chunk)
+        diversity.append(div)
+    plt.plot(word_offset,diversity,label=cat) # the label of the plot is category
+plt.legend() # show the legend
+plt.xlabel('words')
+plt.ylabel('diversity')
+plt.show()
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+5. building and visualize network on social media
+import os
+import re
+import nltk
+edge=[]
+nodes=[]
+for i in os.listdir():
+    if i.endswith('.txt'):
+        with open(i,'r') as f:
+            contents=f.readlines()
+            for j in range(9,len(contents)):
+                line=contents[j]
+                author=str(re.split('\t',line)[0])
+                nodes.append(author)
+                post=str(re.split('\t',line)[3])
+                if post.startswith('Quote from'):
+                     quoted=re.findall('Quote from: (.*?) on',post)[0]
+                     tie=(author,quoted)
+                     edge.append(tie)
+edge=list(set(edge))
+nodes=list(set(nodes))
+
+import networkx as nx
+G=nx.Graph()
+G.add_nodes_from(nodes)
+G.add_edges_from(edge)
+#print(G.nodes())
+#print(G.edges())
+
+# set node size
+# set node color
+timescitedlist=[]
+color_map=[]
+for i in G.nodes():
+     timescited=[x[1] for x in G.edges()].count(i)
+     timescitedlist.append(timescited)
+     if timescited==0:
+          color_map.append('grey')
+     elif timescited==1:
+          color_map.append('green')
+     elif timescited<5:
+          color_map.append('blue')
+     else:
+          color_map.append('red')
+#print(timecitedlist)
+#print(color_map)
+
+import matplotlib.pyplot as plt
+nx.draw(G,node_size=[(v+1)*10 for v in timescitedlist], node_color=color_map, width=0.5)
+plt.show()
+
+# calcualte some important measures in the network
+print(nx.degree_centrality(G))
+print(nx.betweenness_centrality(G))
+print(nx.density(G))

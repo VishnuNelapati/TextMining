@@ -1,0 +1,139 @@
+0. installing the packages
+
+pip install textblob
+pip install vaderSentiment
+------------------------------------------------------------------------------------------------------------
+1. sentiment analysis with blob
+
+from textblob import TextBlob
+b = TextBlob("I feel very sick today, don't call me unless necessary")
+print(b.sentiment)
+# the result: Sentiment(polarity=-0.4642857142857143, subjectivity=1.0)
+# polarity is between -1 and 1. Negative means negative sentiment.
+# subjectivity is from 0 to 1. 0 means very objective, 1 means subjective
+
+# sometimes this is not accurate.
+from textblob import TextBlob
+b = TextBlob("Chinese Government banned Bitcoin related transactions among financial institutes")
+print(b.sentiment)
+
+# try some positive corpus
+text = TextBlob("Textblob is amazingly simple to use. What great fun!")
+text.sentiment.polarity
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2. select the polarity/sentiment threshold for your context
+
+# because in each context, the optimal cut off to determine pos/neg sentiment is different.
+# you can try out different polarity threadhold with a training set
+# and find the threshold that fit your context the best.
+
+from textblob import TextBlob
+import numpy as np # we are going to use np.arange. range(start, end, step) only works for integer numbers
+
+def accr(polaritybar):
+    count=0
+    correct=0
+
+    with open('negative_review.txt','r') as f:
+        for line in f.readlines():
+            blob=TextBlob(line.strip('\n'))
+            if blob.sentiment.polarity<=polaritybar:
+                correct+=1
+            count+=1
+                
+    with open('positive_review.txt','r') as f:
+        for line in f.readlines():
+            blob=TextBlob(line.strip('\n'))
+            if blob.sentiment.polarity>polaritybar:
+                correct+=1
+            count+=1    
+    
+    return round((correct)/(count),2)
+
+for pol in np.arange(-0.5,0.5,0.05):
+        print("polarity:{},accuracy:{}".format(pol,accr(pol)))
+		
+# looks like the in the current context, the threshold should be 0.1
+------------------------------------------------------------------------------------------------------------
+3. sentiment analysis with  VADER (Valence Aware Dictionary and sEntiment Reasoner)
+
+# different from TextBlob sentiment analysis, which is based on training preclassified data.
+# the vader sentiment analysis is lexicon based. 
+# meaning that we use a dictionary that maps words to a score from -4 to 4 (-4 is most negative)
+# in vader lexcon, even emotions are mapped: e.g. /-: and 0:-3 get mapped to  -1.3 and 1.5.
+# humans are used to rate the score of each word and the scores are averaged.
+# the sentence sentiment is then normalized sum of the sentiments from each words to keep it from -1 to 1.
+# x is the sum of sentiment scores from all scored words, and the vader sentence sentiment is x/sqrt(x^2+a), a is usually set to 15.
+# no need to train positive or negative corpus
+# more computational efficient than other machine learning and deep learning approaches
+
+# redo the previous example, but with vader
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+analyzer=SentimentIntensityAnalyzer()
+sent=analyzer.polarity_scores("I feel very sick today, don't call me unless necessary")
+print(sent)
+sent2=analyzer.polarity_scores("Chinese Government banned Bitcoin related transactions among financial institutes")
+print(sent2)
+# we get three sentiments and a compound score. 
+# compound is between -1 and 1.
+------------------------------------------------------------------------------------------------------------
+4. Using word count to gauge sentiment
+
+with open("loughran_negative.txt",'r') as f:
+    negative=[x.lower().strip('\n') for x in f.readlines()]
+
+import nltk
+    
+f=open('post.txt','r')
+contents=" ".join([x.lower() for x in f.readlines()])
+wordlist=nltk.word_tokenize(contents)
+length=len(wordlist)
+negcount=sum([1 if i in negative else 0 for i in wordlist])
+print(negcount/length)
+------------------------------------------------------------------------------------------------------------
+5. Consider  negation
+
+import nltk
+negation=['no', 'not', 'none', 'neither', 'never', 'nobody','nothing','nowhere','hardly','scarcely','barely',"doesnt","isnt","dont","wasnt","shouldnt","wouldnt","couldnt","wont","cant"]
+with open("loughran_negative.txt",'r') as f:
+    negative=[x.lower().strip('\n') for x in f.readlines()]
+with open("loughran_positive.txt",'r') as f:
+    positive=[x.lower().strip('\n') for x in f.readlines()]
+    
+def negate_pos(text):
+    count=0
+    wordlist=nltk.word_tokenize(text)
+    for index,word in enumerate(wordlist):
+        if word in positive:
+            word1=wordlist[index-1] if index>=1 else 'NA'
+            word2=wordlist[index-2] if index>=2 else "NA"
+            word3=wordlist[index-3] if index>=3 else "NA"
+            if (word1 in negation) or (word2 in negation) or (word3 in negation):
+                count+=1
+    return count
+
+def negate_neg(text):
+    count=0
+    wordlist=nltk.word_tokenize(text)
+    for index,word in enumerate(wordlist):
+        if word in negative:
+            word1=wordlist[index-1] if index>=1 else 'NA'
+            word2=wordlist[index-2] if index>=2 else "NA"
+            word3=wordlist[index-3] if index>=3 else "NA"
+            if (word1 in negation) or (word2 in negation) or (word3 in negation):
+                count+=1
+    return count
+------------------------------------------------------------------------------------------------------------
+6. other established sentiment analysis tools
+
+# the sentistrength
+http://sentistrength.wlv.ac.uk/
+
+# the LIWC, but this is not free
+http://liwc.wpengine.com/
+
+
+
+
+
+ 
